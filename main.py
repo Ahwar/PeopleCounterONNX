@@ -157,14 +157,13 @@ def infer_on_stream(args):
 
     # get classes names
     class_names = load_class_names("bin/classes.txt")
-    
+
     # OPTIONAL: uncomment for writing output video
     # Define the codec and create VideoWriter object.The output is stored in 'outpy.avi' file.
     # out = cv2.VideoWriter('outpy.avi',cv2.VideoWriter_fourcc('M','J','P','G'), 10, (640,640))
 
-
-    # prev_count = 0
-    # total_persons = 0
+    prev_count = 0
+    total_persons = 0
     ### Loop until stream is over ###
     while capture.isOpened():
         ###  Read from the video capture ###
@@ -177,7 +176,7 @@ def infer_on_stream(args):
         image = preprocessing(frame, input_width, input_height)
 
         start_time = time.time()
-        
+
         # run inference
         result = net.inference(image)
         print("result: ", result.shape)
@@ -201,43 +200,50 @@ def infer_on_stream(args):
             torch.from_numpy(result), conf_thres=prob_threshold, iou_thres=iou_threshold
         )
 
+        required_classes = [0, 1, 2, 3, 5, 7]
+        for x0, y0, x1, y1, score, cls_id in out[0]:
+            # filter only required classes
+            if cls_id in required_classes:
+                ### draw bounding box around person
+                # convert the explicit box point to ratio according to model input
+                x0, y0 = x0 / input_width, y0 / input_height
+                x1, y1 = x1 / input_width, y1 / input_height
 
-        for (x0, y0, x1, y1, score, cls_id) in out[0]:
-            
-            ### draw bounding box around person
-            # convert the explicit box point to ratio according to model input
-            x0, y0 = x0/input_width, y0/input_height
-            x1, y1 = x1/input_width, y1/input_height
+                # convert ratio to pixels points according the frame shape
+                start_point = (
+                    int(x0 * frame_w),
+                    int(y0 * frame_h),
+                )  # start point of the rectangle
+                end_point = (
+                    int(x1 * frame_w),
+                    int(y1 * frame_h),
+                )  # start point of the rectangle
+                score = round(float(score), 3)
+                label = class_names[int(cls_id)]
+                label += " " + str(score)
+                # draw rectangle
+                frame = cv2.rectangle(frame, start_point, end_point, (13, 255, 0), 2)
 
-            # convert ratio to pixels points according the frame shape
-            start_point = ( int(x0 * frame_w), int(y0 * frame_h) )  # start point of the rectangle
-            end_point = ( int(x1 * frame_w), int(y1 * frame_h) )    # start point of the rectangle
-            score = round(float(score), 3)
-            label = class_names[int(cls_id)]
-            label += " " + str(score)
-            # draw rectangle
-            frame = cv2.rectangle(frame, start_point, end_point, (13,255,0), 2)
-
-            # put detected object's labels
-            cv2.putText(
-                frame,
-                label,
-                start_point,
-                cv2.FONT_HERSHEY_SIMPLEX,
-                0.75,
-                (13,255,0),
-                thickness=2,
-            )
+                # put detected object's labels
+                cv2.putText(
+                    frame,
+                    label,
+                    start_point,
+                    cv2.FONT_HERSHEY_SIMPLEX,
+                    0.75,
+                    (13, 255, 0),
+                    thickness=2,
+                )
 
         # show the result image
         cv2.imshow("image", frame)
 
         if is_image:
             cv2.waitKey(0)
-        
+
         # OPTIONAL: uncomment for writing output video
         # out.write(ori_images[0])
-        
+
         # Press Q on keyboard to  exit
         if cv2.waitKey(25) & 0xFF == ord("q"):
             break

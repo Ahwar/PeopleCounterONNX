@@ -12,7 +12,8 @@ class Network:
         # prefer CUDA Execution Provider over CPU Execution Provider
         providers = [
             # "OpenVINOExecutionProvider",
-                     "CPUExecutionProvider"]
+            "CPUExecutionProvider"
+        ]
         ## start inference session
         self.sess = nxrun.InferenceSession(model_path, providers=providers)
 

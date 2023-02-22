@@ -3,3 +3,7 @@ onnxruntime
 numpy
 opencv-python
 black
+
+
+torch
+torchvision

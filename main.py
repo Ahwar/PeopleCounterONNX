@@ -162,16 +162,15 @@ def infer_on_stream(args):
     # Define the codec and create VideoWriter object.The output is stored in 'outpy.avi' file.
     # out = cv2.VideoWriter('outpy.avi',cv2.VideoWriter_fourcc('M','J','P','G'), 10, (640,640))
 
-    prev_count = 0
-    total_persons = 0
+    # prev_count = 0
+    # total_persons = 0
     ### Loop until stream is over ###
     while capture.isOpened():
         ###  Read from the video capture ###
         ret, frame = capture.read()
         if not ret:
             break
-        # input frame information
-        frame_w, frame_h = frame.shape[1], frame.shape[0]
+
         ###  Pre-process the image as needed ###
         image = preprocessing(frame, input_width, input_height)
 
@@ -199,44 +198,14 @@ def infer_on_stream(args):
         out = non_max_suppression(
             torch.from_numpy(result), conf_thres=prob_threshold, iou_thres=iou_threshold
         )
-
+        # define class ids you want to filter from all classes
         required_classes = [0, 1, 2, 3, 5, 7]
-        for x0, y0, x1, y1, score, cls_id in out[0]:
-            # filter only required classes
-            if cls_id in required_classes:
-                ### draw bounding box around person
-                # convert the explicit box point to ratio according to model input
-                x0, y0 = x0 / input_width, y0 / input_height
-                x1, y1 = x1 / input_width, y1 / input_height
 
-                # convert ratio to pixels points according the frame shape
-                start_point = (
-                    int(x0 * frame_w),
-                    int(y0 * frame_h),
-                )  # start point of the rectangle
-                end_point = (
-                    int(x1 * frame_w),
-                    int(y1 * frame_h),
-                )  # start point of the rectangle
-                score = round(float(score), 3)
-                label = class_names[int(cls_id)]
-                label += " " + str(score)
-                # draw rectangle
-                frame = cv2.rectangle(frame, start_point, end_point, (13, 255, 0), 2)
-
-                # put detected object's labels
-                cv2.putText(
-                    frame,
-                    label,
-                    start_point,
-                    cv2.FONT_HERSHEY_SIMPLEX,
-                    0.75,
-                    (13, 255, 0),
-                    thickness=2,
-                )
-
+        boxed_image = net.apply_threshold(
+            frame, out, required_classes, input_width, input_height, class_names
+        )
         # show the result image
-        cv2.imshow("image", frame)
+        cv2.imshow("image", boxed_image)
 
         if is_image:
             cv2.waitKey(0)

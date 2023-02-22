@@ -46,15 +46,15 @@ def box_iou(box1, box2, eps=1e-7):
 
 
 def non_max_suppression(
-        prediction,
-        conf_thres=0.25,
-        iou_thres=0.45,
-        classes=None,
-        agnostic=False,
-        multi_label=False,
-        labels=(),
-        max_det=300,
-        nm=0,  # number of masks
+    prediction,
+    conf_thres=0.25,
+    iou_thres=0.45,
+    classes=None,
+    agnostic=False,
+    multi_label=False,
+    labels=(),
+    max_det=300,
+    nm=0,  # number of masks
 ):
     """Non-Maximum Suppression (NMS) on inference results to reject overlapping detections
        reference: https://github.com/ultralytics/yolov5/blob/7a972e86c4e5009830d5e6faacadfe6e1ed2efff/utils/general.py#L882
@@ -63,13 +63,19 @@ def non_max_suppression(
     """
 
     # Checks
-    assert 0 <= conf_thres <= 1, f'Invalid Confidence threshold {conf_thres}, valid values are between 0.0 and 1.0'
-    assert 0 <= iou_thres <= 1, f'Invalid IoU {iou_thres}, valid values are between 0.0 and 1.0'
-    if isinstance(prediction, (list, tuple)):  # YOLOv5 model in validation model, output = (inference_out, loss_out)
+    assert (
+        0 <= conf_thres <= 1
+    ), f"Invalid Confidence threshold {conf_thres}, valid values are between 0.0 and 1.0"
+    assert (
+        0 <= iou_thres <= 1
+    ), f"Invalid IoU {iou_thres}, valid values are between 0.0 and 1.0"
+    if isinstance(
+        prediction, (list, tuple)
+    ):  # YOLOv5 model in validation model, output = (inference_out, loss_out)
         prediction = prediction[0]  # select only inference output
 
     device = prediction.device
-    mps = 'mps' in device.type  # Apple MPS
+    mps = "mps" in device.type  # Apple MPS
     if mps:  # MPS not fully supported yet, convert tensors to CPU before NMS
         prediction = prediction.cpu()
     bs = prediction.shape[0]  # batch size
@@ -110,7 +116,9 @@ def non_max_suppression(
         x[:, 5:] *= x[:, 4:5]  # conf = obj_conf * cls_conf
 
         # Box/Mask
-        box = xywh2xyxy(x[:, :4])  # center_x, center_y, width, height) to (x1, y1, x2, y2)
+        box = xywh2xyxy(
+            x[:, :4]
+        )  # center_x, center_y, width, height) to (x1, y1, x2, y2)
         mask = x[:, mi:]  # zero columns if no masks
 
         # Detections matrix nx6 (xyxy, conf, cls)
@@ -133,18 +141,22 @@ def non_max_suppression(
         n = x.shape[0]  # number of boxes
         if not n:  # no boxes
             continue
-        x = x[x[:, 4].argsort(descending=True)[:max_nms]]  # sort by confidence and remove excess boxes
+        x = x[
+            x[:, 4].argsort(descending=True)[:max_nms]
+        ]  # sort by confidence and remove excess boxes
 
         # Batched NMS
         c = x[:, 5:6] * (0 if agnostic else max_wh)  # classes
         boxes, scores = x[:, :4] + c, x[:, 4]  # boxes (offset by class), scores
         i = torchvision.ops.nms(boxes, scores, iou_thres)  # NMS
         i = i[:max_det]  # limit detections
-        if merge and (1 < n < 3E3):  # Merge NMS (boxes merged using weighted mean)
+        if merge and (1 < n < 3e3):  # Merge NMS (boxes merged using weighted mean)
             # update boxes as boxes(i,4) = weights(i,n) * boxes(n,4)
             iou = box_iou(boxes[i], boxes) > iou_thres  # iou matrix
             weights = iou * scores[None]  # box weights
-            x[i, :4] = torch.mm(weights, x[:, :4]).float() / weights.sum(1, keepdim=True)  # merged boxes
+            x[i, :4] = torch.mm(weights, x[:, :4]).float() / weights.sum(
+                1, keepdim=True
+            )  # merged boxes
             if redundant:
                 i = i[iou.sum(1) > 1]  # require redundancy
 
@@ -152,7 +164,7 @@ def non_max_suppression(
         if mps:
             output[xi] = output[xi].to(device)
         if (time.time() - t) > time_limit:
-            logging.warning(f'WARNING ⚠️ NMS time limit {time_limit:.3f}s exceeded')
+            logging.warning(f"WARNING ⚠️ NMS time limit {time_limit:.3f}s exceeded")
             break  # time limit exceeded
 
     return output

@@ -162,8 +162,8 @@ def infer_on_stream(args):
     # Define the codec and create VideoWriter object.The output is stored in 'outpy.avi' file.
     # out = cv2.VideoWriter('outpy.avi',cv2.VideoWriter_fourcc('M','J','P','G'), 10, (640,640))
 
-    # prev_count = 0
-    # total_persons = 0
+    prev_count = 0
+    total_persons = 0
     ### Loop until stream is over ###
     while capture.isOpened():
         ###  Read from the video capture ###
@@ -201,8 +201,26 @@ def infer_on_stream(args):
         # define class ids you want to filter from all classes
         required_classes = [0, 1, 2, 3, 5, 7]
 
-        boxed_image = net.apply_threshold(
+        boxed_image, current_people_count = net.apply_threshold(
             frame, out, required_classes, input_width, input_height, class_names
+        )
+        # when new person enters
+        if current_people_count > prev_count:
+            total_persons = total_persons + (current_people_count - prev_count)
+
+        prev_count = current_people_count
+
+        # Show the people count on frame
+        cv2.putText(
+            boxed_image,
+            "People in frame: {}\nTotal people so Far{}".format(
+                current_people_count, total_persons
+            ),
+            (10, frame.shape[0] - 30),
+            cv2.FONT_HERSHEY_COMPLEX,
+            0.5,
+            (225, 0, 0),
+            1,
         )
         # show the result image
         cv2.imshow("image", boxed_image)

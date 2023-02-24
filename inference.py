@@ -11,10 +11,7 @@ class Network:
 
         # define the priority order for the execution providers
         # prefer CUDA Execution Provider over CPU Execution Provider
-        providers = [
-            # "OpenVINOExecutionProvider",
-            "CPUExecutionProvider"
-        ]
+        providers = ["CUDAExecutionProvider", "CPUExecutionProvider"]
         ## start inference session
         self.sess = nxrun.InferenceSession(model_path, providers=providers)
 
@@ -61,6 +58,7 @@ class Network:
         processed_frame = frame
         # input frame information
         frame_w, frame_h = frame.shape[1], frame.shape[0]
+        current_people_count = 0  # people count variable
         for x0, y0, x1, y1, score, cls_id in detections[0]:
             # filter only required classes
             if cls_id in required_classes:
@@ -96,4 +94,7 @@ class Network:
                     (13, 255, 0),
                     thickness=2,
                 )
-        return processed_frame
+                # if object is a person
+                if cls_id == 0:
+                    current_people_count += 1
+        return processed_frame, current_people_count

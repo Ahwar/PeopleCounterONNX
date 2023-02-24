@@ -159,8 +159,13 @@ def infer_on_stream(args):
     class_names = load_class_names("bin/classes.txt")
 
     # OPTIONAL: uncomment for writing output video
+    # Default resolutions of the frame are obtained.The default resolutions are system dependent.
+    # We convert the resolutions from float to integer.
+    frame_width = int(capture.get(3))
+    frame_height = int(capture.get(4))
+    
     # Define the codec and create VideoWriter object.The output is stored in 'outpy.avi' file.
-    # out = cv2.VideoWriter('outpy.avi',cv2.VideoWriter_fourcc('M','J','P','G'), 10, (640,640))
+    video_output = cv2.VideoWriter('output.avi',cv2.VideoWriter_fourcc('M','J','P','G'), 24, (frame_width,frame_height))
 
     prev_count = 0
     total_persons = 0
@@ -170,7 +175,7 @@ def infer_on_stream(args):
         ret, frame = capture.read()
         if not ret:
             break
-
+        
         ###  Pre-process the image as needed ###
         image = preprocessing(frame, input_width, input_height)
 
@@ -213,13 +218,13 @@ def infer_on_stream(args):
         # Show the people count on frame
         cv2.putText(
             boxed_image,
-            "People in frame: {}\nTotal people so Far{}".format(
+            "People in frame: {}  Total people so Far: {}".format(
                 current_people_count, total_persons
             ),
             (10, frame.shape[0] - 30),
             cv2.FONT_HERSHEY_COMPLEX,
             0.5,
-            (225, 0, 0),
+            (0, 225, 0),
             1,
         )
         # show the result image
@@ -229,7 +234,7 @@ def infer_on_stream(args):
             cv2.waitKey(0)
 
         # OPTIONAL: uncomment for writing output video
-        # out.write(ori_images[0])
+        video_output.write(frame)
 
         # Press Q on keyboard to  exit
         if cv2.waitKey(25) & 0xFF == ord("q"):
